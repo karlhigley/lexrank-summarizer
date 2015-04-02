@@ -15,47 +15,61 @@ import breeze.linalg.{DenseVector => BDV}
 import chalk.text.segment.JavaSentenceSegmenter
 import chalk.text.tokenize.SimpleEnglishTokenizer
 
-case class Sentence(text: String, features: Vector)
+case class Sentence(id: Long, text: String)
+case class TokenizedSentence(id: Long, tokens: Seq[String])
+case class FeaturizedSentence(id: Long, features: Vector)
 
 object Summarizer extends Logging {
-  type Vertex = Tuple2[Long, Sentence]
-
-  val hashingTF = new HashingTF()
-
   def dot(v1: Vector, v2: Vector) : Double = {
     BDV(v1.toArray).dot(BDV(v2.toArray))
-  }
-
-  def tokenize(text: String) : Seq[String] = {
-    val tokenizer = SimpleEnglishTokenizer()
-    tokenizer(text.trim.toLowerCase).toSeq    
   }
 
   def segment(text: String) : Seq[String] = {
     JavaSentenceSegmenter(text).toSeq
   }
 
-  def featurizeSentences(rawSentences: RDD[String], stopwords: Set[String]) : RDD[Sentence] = {
-    val sentencesWithTFs = rawSentences.map(s => {
-      val tokens = tokenize(s).filter(!stopwords.contains(_))
-      (s, hashingTF.transform(tokens))
-    })
-    
-    val idf = new IDF().fit(sentencesWithTFs.map(_._2))    
-    val normalizer = new Normalizer()    
+  def extractSentences(documents: RDD[String]) : RDD[Sentence] = {
+    // For now, only expect one document so flatMap instead of map
+    documents.flatMap(segment(_))
+             .zipWithIndex()
+             .map({ case (text, id) => Sentence(id, text) })
+  }
 
-    sentencesWithTFs.map( swtf => {      
-      val featureVector = normalizer.transform(idf.transform(swtf._2))
-      new Sentence(swtf._1, featureVector)
+  def tokenize(sentences: RDD[Sentence], stopwords: Set[String]) : RDD[TokenizedSentence] = {
+    val tokenizer = SimpleEnglishTokenizer()
+    sentences.map(s => {
+      val tokens = tokenizer(s.text.toLowerCase).toSeq.filter(!stopwords.contains(_))
+      TokenizedSentence(s.id, tokens)
     })
   }
 
-  def buildEdges(vertices: RDD[Vertex]) : RDD[Edge[Double]] = {
+  def featurize(tokenizedSentences: RDD[TokenizedSentence]) : RDD[FeaturizedSentence] = {
+    val hashingTF  = new HashingTF()
+    val normalizer = new Normalizer()
+    val idfModel   = new IDF()
+
+    val termFrequencies = tokenizedSentences.map(s => {
+        (s.id, hashingTF.transform(s.tokens))
+    })
+    
+    val idf = idfModel.fit(termFrequencies.map({ case (id, tf) => tf }))
+
+    termFrequencies.map({
+      case (id, tf) =>
+        val featureVector = normalizer.transform(idf.transform(tf))
+        FeaturizedSentence(id, featureVector)
+    })
+  }
+
+  def buildEdges(vertices: RDD[(Long, Vector)]) : RDD[Edge[Double]] = {
     vertices
       .cartesian(vertices)
-      .filter(pair => pair._1._2.text != pair._2._2.text)
+      .filter({ case (v1, v2) => v1 != v2 })
       .distinct()
-      .map( pair => Edge(pair._1._1, pair._2._1, dot(pair._1._2.features, pair._2._2.features)) )
+      .map({
+        case ((id1, features1), (id2, features2)) =>
+          Edge(id1, id2, dot(features1, features2)) 
+      })
   }
 
   def main(args: Array[String]) {
@@ -65,12 +79,12 @@ object Summarizer extends Logging {
     val stopwords = Source.fromFile("stopwords.txt").getLines.toSet
     sc.broadcast(stopwords)
 
-    val rawSentences = sc.textFile("test.txt").flatMap(segment)
-    
-    val vertices = featurizeSentences(rawSentences, stopwords).zipWithIndex().map(v => (v._2, v._1))
-    val edges    = buildEdges(vertices)
+    val sentences          = extractSentences(sc.textFile("test.txt"))
+    val tokenizedSentences = tokenize(sentences, stopwords)
+    val vertices           = featurize(tokenizedSentences).map(fs => (fs.id, fs.features))
+    val edges              = buildEdges(vertices)
 
-    val sentenceGraph: Graph[Sentence, Double] = Graph(vertices, edges)
+    val sentenceGraph: Graph[Vector, Double] = Graph(vertices, edges)
 
     val ranks = sentenceGraph
                   .subgraph(epred = (edge) => edge.attr >= 0.1)
@@ -79,7 +93,9 @@ object Summarizer extends Logging {
 
     val sentencesByRank = vertices
                             .join(ranks)
-                            .map { case (id, (sentence, rank)) => (rank, sentence.text) }
+                            .map { case (id, (features, rank)) => (id, rank) }
+                            .join(sentences.map(s => (s.id, s.text)))
+                            .map { case (id, (rank, text)) => (rank, text) }
                             .sortByKey(false)
 
     sentencesByRank.saveAsTextFile("ranked-sentences")
