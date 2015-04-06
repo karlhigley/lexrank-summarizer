@@ -12,6 +12,7 @@ import org.apache.spark.graphx._
 
 import breeze.linalg.{DenseVector => BDV}
 
+import chalk.text.analyze.PorterStemmer
 import chalk.text.segment.JavaSentenceSegmenter
 import chalk.text.tokenize.SimpleEnglishTokenizer
 
@@ -28,6 +29,10 @@ object Summarizer extends Logging {
     JavaSentenceSegmenter(text).toSeq
   }
 
+  def stem(token: String) : String = {
+    PorterStemmer(token)
+  }
+
   def extractSentences(documents: RDD[String]) : RDD[Sentence] = {
     // For now, only expect one document so flatMap instead of map
     documents.flatMap(segment(_))
@@ -38,7 +43,7 @@ object Summarizer extends Logging {
   def tokenize(sentences: RDD[Sentence], stopwords: Set[String]) : RDD[TokenizedSentence] = {
     val tokenizer = SimpleEnglishTokenizer()
     sentences.map(s => {
-      val tokens = tokenizer(s.text.toLowerCase).toSeq.filter(!stopwords.contains(_))
+      val tokens = tokenizer(s.text.toLowerCase).toSeq.filter(!stopwords.contains(_)).map(stem)
       TokenizedSentence(s.id, tokens)
     })
   }
