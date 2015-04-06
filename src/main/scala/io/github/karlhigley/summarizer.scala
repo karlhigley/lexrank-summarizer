@@ -18,7 +18,6 @@ import chalk.text.tokenize.SimpleEnglishTokenizer
 
 case class Sentence(id: Long, text: String)
 case class TokenizedSentence(id: Long, tokens: Seq[String])
-case class FeaturizedSentence(id: Long, features: Vector)
 
 object Summarizer extends Logging {
   def dot(v1: Vector, v2: Vector) : Double = {
@@ -48,7 +47,7 @@ object Summarizer extends Logging {
     })
   }
 
-  def featurize(tokenizedSentences: RDD[TokenizedSentence]) : RDD[FeaturizedSentence] = {
+  def featurize(tokenizedSentences: RDD[TokenizedSentence]) : RDD[Tuple2[Long, Vector]] = {
     val hashingTF  = new HashingTF()
     val normalizer = new Normalizer()
     val idfModel   = new IDF()
@@ -62,7 +61,7 @@ object Summarizer extends Logging {
     termFrequencies.map({
       case (id, tf) =>
         val featureVector = normalizer.transform(idf.transform(tf))
-        FeaturizedSentence(id, featureVector)
+        (id, featureVector)
     })
   }
 
@@ -86,7 +85,7 @@ object Summarizer extends Logging {
 
     val sentences          = extractSentences(sc.textFile("test.txt"))
     val tokenizedSentences = tokenize(sentences, stopwords)
-    val vertices           = featurize(tokenizedSentences).map(fs => (fs.id, fs.features))
+    val vertices           = featurize(tokenizedSentences)
     val edges              = buildEdges(vertices)
 
     val sentenceGraph: Graph[Vector, Double] = Graph(vertices, edges)
