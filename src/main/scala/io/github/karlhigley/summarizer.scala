@@ -1,5 +1,7 @@
 package io.github.karlhigley
 
+import scala.io.Source
+
 import org.apache.spark.{SparkContext, SparkConf, Logging}
 import org.apache.spark.rdd.RDD
 
@@ -33,8 +35,11 @@ object Summarizer extends Logging {
     JavaSentenceSegmenter(text).toSeq
   }
 
-  def featurizeSentences(rawSentences: RDD[String]) : RDD[Sentence] = {
-    val sentencesWithTFs = rawSentences.map(s => (s, hashingTF.transform(tokenize(s))))
+  def featurizeSentences(rawSentences: RDD[String], stopwords: Set[String]) : RDD[Sentence] = {
+    val sentencesWithTFs = rawSentences.map(s => {
+      val tokens = tokenize(s).filter(!stopwords.contains(_))
+      (s, hashingTF.transform(tokens))
+    })
     
     val idf = new IDF().fit(sentencesWithTFs.map(_._2))    
     val normalizer = new Normalizer()    
@@ -57,9 +62,12 @@ object Summarizer extends Logging {
     val conf = new SparkConf().setAppName("Summarizer")
     val sc   = new SparkContext(conf)
 
+    val stopwords = Source.fromFile("stopwords.txt").getLines.toSet
+    sc.broadcast(stopwords)
+
     val rawSentences = sc.textFile("test.txt").flatMap(segment)
     
-    val vertices = featurizeSentences(rawSentences).zipWithIndex().map(v => (v._2, v._1))
+    val vertices = featurizeSentences(rawSentences, stopwords).zipWithIndex().map(v => (v._2, v._1))
     val edges    = buildEdges(vertices)
 
     val sentenceGraph: Graph[Sentence, Double] = Graph(vertices, edges)
