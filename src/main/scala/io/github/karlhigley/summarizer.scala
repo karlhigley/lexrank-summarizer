@@ -76,6 +76,15 @@ object Summarizer extends Logging {
       })
   }
 
+  def rankSentences(featurizedSentences: RDD[Tuple2[Long, Vector]]) : VertexRDD[Double] = {
+    val edges         = buildEdges(featurizedSentences)
+    val sentenceGraph = Graph(featurizedSentences, edges)
+    sentenceGraph
+      .subgraph(epred = (edge) => edge.attr >= 0.1)
+      .pageRank(0.0001)
+      .vertices    
+  }
+
   def main(args: Array[String]) {
     val conf = new SparkConf().setAppName("Summarizer")
     val sc   = new SparkContext(conf)
@@ -83,24 +92,15 @@ object Summarizer extends Logging {
     val stopwords = Source.fromFile("stopwords.txt").getLines.toSet
     sc.broadcast(stopwords)
 
-    val sentences          = extractSentences(sc.textFile("test.txt"))
-    val tokenizedSentences = tokenize(sentences, stopwords)
-    val vertices           = featurize(tokenizedSentences)
-    val edges              = buildEdges(vertices)
+    val sentences           = extractSentences(sc.textFile("test.txt"))
+    val tokenizedSentences  = tokenize(sentences, stopwords)
+    val featurizedSentences = featurize(tokenizedSentences)
+    val ranks               = rankSentences(featurizedSentences)
 
-    val sentenceGraph: Graph[Vector, Double] = Graph(vertices, edges)
-
-    val ranks = sentenceGraph
-                  .subgraph(epred = (edge) => edge.attr >= 0.1)
-                  .pageRank(0.0001)
-                  .vertices
-
-    val sentencesByRank = vertices
-                            .join(ranks)
-                            .map { case (id, (features, rank)) => (id, rank) }
-                            .join(sentences.map(s => (s.id, s.text)))
-                            .map { case (id, (rank, text)) => (rank, text) }
-                            .sortByKey(false)
+    val sentencesByRank     = ranks
+                                .join(sentences.map(s => (s.id, s.text)))
+                                .map { case (id, (rank, text)) => (rank, text) }
+                                .sortByKey(false)
 
     sentencesByRank.saveAsTextFile("ranked-sentences")
 
