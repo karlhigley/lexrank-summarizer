@@ -20,20 +20,28 @@ case class Document(id: String, text: String)
 case class Sentence(id: Long, docId: String, text: String)
 case class TokenizedSentence(id: Long, tokens: Seq[String])
 
-object Summarizer extends Logging {
-  def dot(v1: Vector, v2: Vector) : Double = {
+class LexRank(stopwords: Set[String]) extends Serializable {
+  def summarize(documents: RDD[Document]) = {
+    val sentences           = extractSentences(documents)
+    val tokenizedSentences  = tokenize(sentences, stopwords)
+    val featurizedSentences = featurize(tokenizedSentences)
+    val ranks               = rankSentences(featurizedSentences)
+    selectExcerpts(sentences, ranks)   
+  }
+
+  private def dot(v1: Vector, v2: Vector) : Double = {
     BDV(v1.toArray).dot(BDV(v2.toArray))
   }
 
-  def segment(text: String) : Seq[String] = {
+  private def segment(text: String) : Seq[String] = {
     JavaSentenceSegmenter(text).toSeq
   }
 
-  def stem(token: String) : String = {
+  private def stem(token: String) : String = {
     PorterStemmer(token)
   }
 
-  def extractSentences(documents: RDD[Document]) : RDD[Sentence] = {
+  private def extractSentences(documents: RDD[Document]) : RDD[Sentence] = {
     documents
       .flatMap(d => segment(d.text).map(t => (d.id, t)) )
       .zipWithIndex()
@@ -42,7 +50,7 @@ object Summarizer extends Logging {
       })
   }
 
-  def tokenize(sentences: RDD[Sentence], stopwords: Set[String]) : RDD[TokenizedSentence] = {
+  private def tokenize(sentences: RDD[Sentence], stopwords: Set[String]) : RDD[TokenizedSentence] = {
     val tokenizer = SimpleEnglishTokenizer()
     sentences.map(s => {
       val tokens = tokenizer(s.text.toLowerCase).toSeq.filter(!stopwords.contains(_)).map(stem)
@@ -50,7 +58,7 @@ object Summarizer extends Logging {
     })
   }
 
-  def featurize(tokenizedSentences: RDD[TokenizedSentence]) : RDD[Tuple2[Long, Vector]] = {
+  private def featurize(tokenizedSentences: RDD[TokenizedSentence]) : RDD[Tuple2[Long, Vector]] = {
     val hashingTF  = new HashingTF()
     val normalizer = new Normalizer()
     val idfModel   = new IDF()
@@ -68,7 +76,7 @@ object Summarizer extends Logging {
     })
   }
 
-  def buildEdges(vertices: RDD[(Long, Vector)]) : RDD[Edge[Double]] = {
+  private def buildEdges(vertices: RDD[(Long, Vector)]) : RDD[Edge[Double]] = {
     vertices
       .cartesian(vertices)
       .filter({ case (v1, v2) => v1 != v2 })
@@ -79,7 +87,7 @@ object Summarizer extends Logging {
       })
   }
 
-  def rankSentences(featurizedSentences: RDD[Tuple2[Long, Vector]]) : VertexRDD[Double] = {
+  private def rankSentences(featurizedSentences: RDD[Tuple2[Long, Vector]]) : VertexRDD[Double] = {
     val edges         = buildEdges(featurizedSentences)
     val sentenceGraph = Graph(featurizedSentences, edges)
     sentenceGraph
@@ -88,7 +96,7 @@ object Summarizer extends Logging {
       .vertices    
   }
 
-  def selectExcerpts(sentences: RDD[Sentence], ranks: VertexRDD[Double]) = {
+  private def selectExcerpts(sentences: RDD[Sentence], ranks: VertexRDD[Double]) = {
     ranks
       .join(sentences.map(s => (s.id, s)))
       .map { case (sentenceId, (rank, sentence)) => (sentence.docId, (rank, sentence.id, sentence.text)) }
@@ -96,6 +104,9 @@ object Summarizer extends Logging {
       .flatMap { case (docId, sentences) => sentences.toSeq.sortWith(_._1 > _._1).take(5).map(e => (docId, e._3)) }
   }
 
+}
+
+object Summarizer extends Logging {
   def main(args: Array[String]) {
     val conf = new SparkConf().setAppName("Summarizer")
     val sc   = new SparkContext(conf)
@@ -110,11 +121,8 @@ object Summarizer extends Logging {
       }
     )
 
-    val sentences           = extractSentences(documents)
-    val tokenizedSentences  = tokenize(sentences, stopwords)
-    val featurizedSentences = featurize(tokenizedSentences)
-    val ranks               = rankSentences(featurizedSentences)
-    val excerpts            = selectExcerpts(sentences, ranks)    
+    val model    = new LexRank(stopwords)
+    val excerpts = model.summarize(documents)
 
 	excerpts
       .map(_.productIterator.toList.mkString("\t"))
