@@ -16,7 +16,8 @@ import chalk.text.analyze.PorterStemmer
 import chalk.text.segment.JavaSentenceSegmenter
 import chalk.text.tokenize.SimpleEnglishTokenizer
 
-case class Sentence(id: Long, docId: Long, text: String)
+case class Document(id: String, text: String)
+case class Sentence(id: Long, docId: String, text: String)
 case class TokenizedSentence(id: Long, tokens: Seq[String])
 
 object Summarizer extends Logging {
@@ -32,12 +33,9 @@ object Summarizer extends Logging {
     PorterStemmer(token)
   }
 
-  def extractSentences(documents: RDD[String]) : RDD[Sentence] = {
+  def extractSentences(documents: RDD[Document]) : RDD[Sentence] = {
     documents
-      .zipWithIndex()
-      .flatMap({
-        case (docText, docId) => segment(docText).map(t => (docId, t))
-      })
+      .flatMap(d => segment(d.text).map(t => (d.id, t)) )
       .zipWithIndex()
       .map({
         case ((docId, sentenceText), sentenceId) => Sentence(sentenceId, docId, sentenceText)
@@ -105,7 +103,14 @@ object Summarizer extends Logging {
     val stopwords = Source.fromFile("stopwords.txt").getLines.toSet
     sc.broadcast(stopwords)
 
-    val sentences           = extractSentences(sc.textFile("test.txt"))
+    val documents = sc.textFile("test.txt").flatMap( 
+      _.split('\t').toList match {
+        case List(docId, text) => Some(Document(docId, text))
+        case _                 => None
+      }
+    )
+
+    val sentences           = extractSentences(documents)
     val tokenizedSentences  = tokenize(sentences, stopwords)
     val featurizedSentences = featurize(tokenizedSentences)
     val ranks               = rankSentences(featurizedSentences)
