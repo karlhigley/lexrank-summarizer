@@ -16,7 +16,7 @@ import chalk.text.analyze.PorterStemmer
 import chalk.text.segment.JavaSentenceSegmenter
 import chalk.text.tokenize.SimpleEnglishTokenizer
 
-case class Sentence(id: Long, text: String)
+case class Sentence(id: Long, docId: Long, text: String)
 case class TokenizedSentence(id: Long, tokens: Seq[String])
 
 object Summarizer extends Logging {
@@ -33,10 +33,15 @@ object Summarizer extends Logging {
   }
 
   def extractSentences(documents: RDD[String]) : RDD[Sentence] = {
-    // For now, only expect one document so flatMap instead of map
-    documents.flatMap(segment(_))
-             .zipWithIndex()
-             .map({ case (text, id) => Sentence(id, text) })
+    documents
+      .zipWithIndex()
+      .flatMap({
+        case (docText, docId) => segment(docText).map(t => (docId, t))
+      })
+      .zipWithIndex()
+      .map({
+        case ((docId, sentenceText), sentenceId) => Sentence(sentenceId, docId, sentenceText)
+      })
   }
 
   def tokenize(sentences: RDD[Sentence], stopwords: Set[String]) : RDD[TokenizedSentence] = {
@@ -85,6 +90,14 @@ object Summarizer extends Logging {
       .vertices    
   }
 
+  def selectExcerpts(sentences: RDD[Sentence], ranks: VertexRDD[Double]) = {
+    ranks
+      .join(sentences.flatMap(s => Some((s.id, s))))
+      .map { case (sentenceId, (rank, sentence)) => (sentence.docId, (rank, sentence.id, sentence.text)) }
+      .groupByKey()
+      .flatMap { case (docId, sentences) => sentences.toSeq.sortWith(_._1 > _._1).take(5) }
+  }
+
   def main(args: Array[String]) {
     val conf = new SparkConf().setAppName("Summarizer")
     val sc   = new SparkContext(conf)
@@ -96,13 +109,9 @@ object Summarizer extends Logging {
     val tokenizedSentences  = tokenize(sentences, stopwords)
     val featurizedSentences = featurize(tokenizedSentences)
     val ranks               = rankSentences(featurizedSentences)
+    val excerpts            = selectExcerpts(sentences, ranks)    
 
-    val sentencesByRank     = ranks
-                                .join(sentences.map(s => (s.id, s.text)))
-                                .map { case (id, (rank, text)) => (rank, text) }
-                                .sortByKey(false)
-
-    sentencesByRank.saveAsTextFile("ranked-sentences")
+    excerpts.saveAsTextFile("ranked-sentences")
 
     sc.stop()
   }
