@@ -90,10 +90,10 @@ object Summarizer extends Logging {
 
   def selectExcerpts(sentences: RDD[Sentence], ranks: VertexRDD[Double]) = {
     ranks
-      .join(sentences.flatMap(s => Some((s.id, s))))
+      .join(sentences.map(s => (s.id, s)))
       .map { case (sentenceId, (rank, sentence)) => (sentence.docId, (rank, sentence.id, sentence.text)) }
       .groupByKey()
-      .flatMap { case (docId, sentences) => sentences.toSeq.sortWith(_._1 > _._1).take(5) }
+      .flatMap { case (docId, sentences) => sentences.toSeq.sortWith(_._1 > _._1).take(5).map(e => (docId, e._3)) }
   }
 
   def main(args: Array[String]) {
@@ -116,7 +116,9 @@ object Summarizer extends Logging {
     val ranks               = rankSentences(featurizedSentences)
     val excerpts            = selectExcerpts(sentences, ranks)    
 
-    excerpts.saveAsTextFile("ranked-sentences")
+	excerpts
+      .map(_.productIterator.toList.mkString("\t"))
+      .saveAsTextFile("ranked-sentences")
 
     sc.stop()
   }
