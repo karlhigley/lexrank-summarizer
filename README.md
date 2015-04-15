@@ -7,20 +7,18 @@ This is a Spark-based extractive summarizer, which selects the 5 most informativ
 Build a JAR file from the source with `sbt assembly`.  Submit a job to Spark with:
 
 ```
-spark-submit --class io.github.karlhigley.Summarizer <path to jar file>
+spark-submit --class io.github.karlhigley.Summarizer <path to jar file> [options]
+
+Options:
+-i PATH, --input PATH          Relative path of input files (default: "./input")
+-o PATH, --output PATH         Relative path of output files (default: "./output")
+-s PATH, --stopwords PATH      Relative path of stopwords file (default: "./stopwords")
 ```
 
-### Input/Output Format
+### File Formats
 
-The summarizer expects tab-separated text files with each document on a single line.  Each line should contain a document identifier in the first column and the document text in the second column. Outputs are formatted similarly, but with the text of a single sentence in the second column.
+The summarizer expects tab-separated text files with each document on a single line.  Each line should contain a document identifier in the first column and the document text in the second column.
 
-
-### Stopwords
+Outputs are formatted similarly, but with the text of a single sentence in the second column.
 
 Stopwords are provided as a text file with one word per line.
-
-
-### Paths
-Input dir:      ./input
-Output dir:     ./output
-Stopwords file: ./stopwords

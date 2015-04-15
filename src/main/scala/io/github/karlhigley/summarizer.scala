@@ -106,15 +106,62 @@ class LexRank(stopwords: Set[String]) extends Serializable {
 
 }
 
+class Configuration(args: Array[String]) {
+  var inputPath     = "input"
+  var outputPath    = "output"
+  var stopwordsPath = "stopwords"
+
+  parse(args.toList)
+
+  private def parse(args: List[String]): Unit = args match {
+    case ("--input" | "-i") :: path :: tail =>
+      inputPath = path
+      parse(tail)
+
+    case ("--output" | "-o") :: path :: tail =>
+      outputPath = path
+      parse(tail)
+
+    case ("--stopwords" | "-s") :: path :: tail =>
+      stopwordsPath = path
+      parse(tail)
+
+    case ("--help" | "-h") :: tail =>
+      printUsageAndExit(0)
+
+    case _ =>
+  }
+
+  /**
+   * Print usage and exit JVM with the given exit code.
+   */
+  private def printUsageAndExit(exitCode: Int) {
+    val usage =
+     s"""
+      |Usage: spark-submit --class io.github.karlhigley.Summarizer <jar-path> [summarizer options]
+      |
+      |Options:
+      |   -i PATH, --input PATH          Relative path of input files (default: "./input")
+      |   -o PATH, --output PATH         Relative path of output files (default: "./output")
+      |   -s PATH, --stopwords PATH      Relative path of stopwords file (default: "./stopwords")
+     """.stripMargin
+    System.err.println(usage)
+    System.exit(exitCode)
+  }
+
+}
+
 object Summarizer extends Logging {
   def main(args: Array[String]) {
-    val conf = new SparkConf().setAppName("Summarizer")
-    val sc   = new SparkContext(conf)
+    val sparkConf = new SparkConf().setAppName("Summarizer")
+    val sc        = new SparkContext(sparkConf)
 
-    val stopwords = Source.fromFile("stopwords").getLines.toSet
+    val config    = new Configuration(args)
+
+    val stopwords = Source.fromFile(config.stopwordsPath).getLines.toSet
     sc.broadcast(stopwords)
 
-    val documents = sc.textFile("input").flatMap( 
+    val documents = sc.textFile(config.inputPath).flatMap( 
       _.split('\t').toList match {
         case List(docId, text) => Some(Document(docId, text))
         case _                 => None
@@ -126,7 +173,7 @@ object Summarizer extends Logging {
 
 	excerpts
       .map(_.productIterator.toList.mkString("\t"))
-      .saveAsTextFile("output")
+      .saveAsTextFile(config.outputPath)
 
     sc.stop()
   }
