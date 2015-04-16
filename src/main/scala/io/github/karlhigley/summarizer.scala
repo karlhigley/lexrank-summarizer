@@ -22,34 +22,29 @@ case class TokenizedSentence(id: Long, tokens: Seq[String])
 
 class LexRank(sentences: RDD[Sentence], features: RDD[(Long, Vector)]) extends Serializable {
   def summarize() = {
-    val ranks = rankSentences(features)
-    selectExcerpts(sentences, ranks)   
-  }
-
-  private def rankSentences(featurizedSentences: RDD[(Long, Vector)]) : VertexRDD[Double] = {
-    val edges         = buildEdges(featurizedSentences)
-    val sentenceGraph = Graph(featurizedSentences, edges)
-    sentenceGraph
-      .pageRank(0.0001)
-      .vertices    
-  }
-
-  private def buildEdges(vertices: RDD[(Long, Vector)]) : RDD[Edge[Double]] = {
-    vertices
-      .cartesian(vertices)
-      .filter({ case (v1, v2) => v1 != v2 })
-      .distinct()
-      .flatMap({
-        case ((id1, features1), (id2, features2)) =>
-          dot(features1, features2) match {
-            case similarity if similarity > 0.1 => Some(Edge(id1, id2, similarity))
-            case _ => None
-          }
-      })
+    val graph  = buildGraph(features, 0.1)
+    val scores = graph.pageRank(0.0001).vertices   
+    selectExcerpts(sentences, scores)   
   }
 
   private def dot(v1: Vector, v2: Vector) : Double = {
     BDV(v1.toArray).dot(BDV(v2.toArray))
+  }
+
+  private def buildGraph(features: RDD[(Long, Vector)], threshold: Double): Graph[Vector, Double] = {
+    val edges =
+      features
+        .cartesian(features)
+        .filter({ case (v1, v2) => v1 != v2 })
+        .distinct()
+        .flatMap({
+          case ((id1, features1), (id2, features2)) =>
+            dot(features1, features2) match {
+              case similarity if similarity > threshold => Some(Edge(id1, id2, similarity))
+              case _ => None
+            }
+        })
+    Graph(features, edges)
   }
 
   private def selectExcerpts(sentences: RDD[Sentence], ranks: VertexRDD[Double]) = {
