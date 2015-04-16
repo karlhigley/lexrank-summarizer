@@ -20,25 +20,53 @@ case class Document(id: String, text: String)
 case class Sentence(id: Long, docId: String, text: String)
 case class TokenizedSentence(id: Long, tokens: Seq[String])
 
-class LexRank(stopwords: Set[String]) extends Serializable {
-  def summarize(documents: RDD[Document]) = {
-    val sentences           = extractSentences(documents)
-    val tokenizedSentences  = tokenize(sentences, stopwords)
-    val featurizedSentences = featurize(tokenizedSentences)
-    val ranks               = rankSentences(featurizedSentences)
+class LexRank(sentences: RDD[Sentence], features: RDD[(Long, Vector)]) extends Serializable {
+  def summarize() = {
+    val ranks = rankSentences(features)
     selectExcerpts(sentences, ranks)   
+  }
+
+  private def rankSentences(featurizedSentences: RDD[(Long, Vector)]) : VertexRDD[Double] = {
+    val edges         = buildEdges(featurizedSentences)
+    val sentenceGraph = Graph(featurizedSentences, edges)
+    sentenceGraph
+      .pageRank(0.0001)
+      .vertices    
+  }
+
+  private def buildEdges(vertices: RDD[(Long, Vector)]) : RDD[Edge[Double]] = {
+    vertices
+      .cartesian(vertices)
+      .filter({ case (v1, v2) => v1 != v2 })
+      .distinct()
+      .flatMap({
+        case ((id1, features1), (id2, features2)) =>
+          dot(features1, features2) match {
+            case similarity if similarity > 0.1 => Some(Edge(id1, id2, similarity))
+            case _ => None
+          }
+      })
   }
 
   private def dot(v1: Vector, v2: Vector) : Double = {
     BDV(v1.toArray).dot(BDV(v2.toArray))
   }
 
-  private def segment(text: String) : Seq[String] = {
-    JavaSentenceSegmenter(text).toSeq
+  private def selectExcerpts(sentences: RDD[Sentence], ranks: VertexRDD[Double]) = {
+    ranks
+      .join(sentences.map(s => (s.id, s)))
+      .map { case (_, (rank, sentence)) => (sentence.docId, (rank, sentence.id, sentence.text)) }
+      .groupByKey()
+      .flatMap { case (docId, sentences) => sentences.toSeq.sortWith(_._1 > _._1).take(5).map(e => (docId, e._3)) }
   }
+}
 
-  private def stem(token: String) : String = {
-    PorterStemmer(token)
+object LexRank {
+  def featurize(documents: RDD[Document], stopwords: Set[String]) = {  
+    val sentences = extractSentences(documents)
+    val tokenized = tokenize(sentences, stopwords)
+    val features  = vectorize(tokenized)
+    new LexRank(sentences, features)
   }
 
   private def extractSentences(documents: RDD[Document]) : RDD[Sentence] = {
@@ -58,7 +86,7 @@ class LexRank(stopwords: Set[String]) extends Serializable {
     })
   }
 
-  private def featurize(tokenizedSentences: RDD[TokenizedSentence]) : RDD[Tuple2[Long, Vector]] = {
+  private def vectorize(tokenizedSentences: RDD[TokenizedSentence]) : RDD[(Long, Vector)] = {
     val hashingTF  = new HashingTF()
     val normalizer = new Normalizer()
     val idfModel   = new IDF()
@@ -76,36 +104,13 @@ class LexRank(stopwords: Set[String]) extends Serializable {
     })
   }
 
-  private def buildEdges(vertices: RDD[(Long, Vector)]) : RDD[Edge[Double]] = {
-    vertices
-      .cartesian(vertices)
-      .filter({ case (v1, v2) => v1 != v2 })
-      .distinct()
-      .flatMap({
-        case ((id1, features1), (id2, features2)) =>
-          dot(features1, features2) match {
-            case similarity if similarity > 0.1 => Some(Edge(id1, id2, similarity))
-            case _ => None
-          }
-      })
+  private def segment(text: String) : Seq[String] = {
+    JavaSentenceSegmenter(text).toSeq
   }
 
-  private def rankSentences(featurizedSentences: RDD[Tuple2[Long, Vector]]) : VertexRDD[Double] = {
-    val edges         = buildEdges(featurizedSentences)
-    val sentenceGraph = Graph(featurizedSentences, edges)
-    sentenceGraph
-      .pageRank(0.0001)
-      .vertices    
+  private def stem(token: String) : String = {
+    PorterStemmer(token)
   }
-
-  private def selectExcerpts(sentences: RDD[Sentence], ranks: VertexRDD[Double]) = {
-    ranks
-      .join(sentences.map(s => (s.id, s)))
-      .map { case (sentenceId, (rank, sentence)) => (sentence.docId, (rank, sentence.id, sentence.text)) }
-      .groupByKey()
-      .flatMap { case (docId, sentences) => sentences.toSeq.sortWith(_._1 > _._1).take(5).map(e => (docId, e._3)) }
-  }
-
 }
 
 class Configuration(args: Array[String]) {
@@ -170,8 +175,8 @@ object Summarizer extends Logging {
       }
     )
 
-    val model    = new LexRank(stopwords)
-    val excerpts = model.summarize(documents)
+    val model    = LexRank.featurize(documents, stopwords)
+    val excerpts = model.summarize()
 
 	excerpts
       .map(_.productIterator.toList.mkString("\t"))
