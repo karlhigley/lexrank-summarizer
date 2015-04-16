@@ -1,6 +1,8 @@
 # LexRank Summarizer
 
-This is a Spark-based extractive summarizer, based on the [LexRank algorithm](http://arxiv.org/pdf/1109.2128.pdf).  It extracts the 5 "most informative" sentences from each document in the corpus.
+This is a Spark-based extractive summarizer, based on the [LexRank algorithm](http://arxiv.org/pdf/1109.2128.pdf).  It extracts a 5 sentence summary from each document in the corpus.
+
+Boilerplate language is detected across documents in the corpus using pairwise comparisons of sentence similarity.  The similarity computations use the [DIMSUM algorithm](http://arxiv.org/abs/1304.1467) to reduce the computational effort involved.
 
 ## Usage
 
@@ -13,6 +15,10 @@ Options:
 -i PATH, --input PATH          Relative path of input files (default: "./input")
 -o PATH, --output PATH         Relative path of output files (default: "./output")
 -s PATH, --stopwords PATH      Relative path of stopwords file (default: "./stopwords")
+-l VALUE, --length VALUE       Number of sentences to extract from each document (default: 5) 
+-b VALUE, --boilerplate VALUE  Similarity cutoff for cross-document boilerplate filtering (default: 0.8)
+-t VALUE, --threshold VALUE    Similarity threshold for LexRank graph construction (default: 0.1)
+-c VALUE, --convergence VALUE  Convergence tolerance for PageRank graph computation (default: 0.001)
 ```
 
 ### File Formats
