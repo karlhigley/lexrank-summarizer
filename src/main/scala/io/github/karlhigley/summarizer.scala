@@ -83,7 +83,7 @@ class LexRank(stopwords: Set[String]) extends Serializable {
       .distinct()
       .flatMap({
         case ((id1, features1), (id2, features2)) =>
-          dot(feature1, feature2) match {
+          dot(features1, features2) match {
             case similarity if similarity > 0.1 => Some(Edge(id1, id2, similarity))
             case _ => None
           }
