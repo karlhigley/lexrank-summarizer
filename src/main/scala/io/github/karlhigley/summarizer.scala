@@ -111,10 +111,10 @@ object Summarizer extends Logging {
     val conf = new SparkConf().setAppName("Summarizer")
     val sc   = new SparkContext(conf)
 
-    val stopwords = Source.fromFile("stopwords.txt").getLines.toSet
+    val stopwords = Source.fromFile("stopwords").getLines.toSet
     sc.broadcast(stopwords)
 
-    val documents = sc.textFile("test.txt").flatMap( 
+    val documents = sc.textFile("input").flatMap( 
       _.split('\t').toList match {
         case List(docId, text) => Some(Document(docId, text))
         case _                 => None
@@ -126,7 +126,7 @@ object Summarizer extends Logging {
 
 	excerpts
       .map(_.productIterator.toList.mkString("\t"))
-      .saveAsTextFile("ranked-sentences")
+      .saveAsTextFile("output")
 
     sc.stop()
   }
