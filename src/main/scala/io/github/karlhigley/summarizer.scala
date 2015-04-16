@@ -81,9 +81,12 @@ class LexRank(stopwords: Set[String]) extends Serializable {
       .cartesian(vertices)
       .filter({ case (v1, v2) => v1 != v2 })
       .distinct()
-      .map({
+      .flatMap({
         case ((id1, features1), (id2, features2)) =>
-          Edge(id1, id2, dot(features1, features2)) 
+          dot(feature1, feature2) match {
+            case similarity if similarity > 0.1 => Some(Edge(id1, id2, similarity))
+            case _ => None
+          }
       })
   }
 
@@ -91,7 +94,6 @@ class LexRank(stopwords: Set[String]) extends Serializable {
     val edges         = buildEdges(featurizedSentences)
     val sentenceGraph = Graph(featurizedSentences, edges)
     sentenceGraph
-      .subgraph(epred = (edge) => edge.attr >= 0.1)
       .pageRank(0.0001)
       .vertices    
   }
