@@ -18,9 +18,10 @@ import chalk.text.tokenize.SimpleEnglishTokenizer
 
 case class Document(id: String, text: String)
 case class Sentence(id: Long, docId: String, text: String)
-case class TokenizedSentence(id: Long, tokens: Seq[String])
+case class SentenceTokens(id: Long, docId: String, tokens: Seq[String])
+case class SentenceFeatures(id: Long, docId: String, features: Vector)
 
-class LexRank(sentences: RDD[Sentence], features: RDD[(Long, Vector)]) extends Serializable {
+class LexRank(sentences: RDD[Sentence], features: RDD[SentenceFeatures]) extends Serializable {
   def summarize() = {
     val graph  = buildGraph(features, 0.1)
     val scores = graph.pageRank(0.0001).vertices   
@@ -31,20 +32,28 @@ class LexRank(sentences: RDD[Sentence], features: RDD[(Long, Vector)]) extends S
     BDV(v1.toArray).dot(BDV(v2.toArray))
   }
 
-  private def buildGraph(features: RDD[(Long, Vector)], threshold: Double): Graph[Vector, Double] = {
+  private def buildGraph(features: RDD[SentenceFeatures], threshold: Double): Graph[Vector, Double] = {
     val edges =
       features
-        .cartesian(features)
-        .filter({ case (v1, v2) => v1 != v2 })
-        .distinct()
+        .map(f => (f.docId, f))
+        .groupByKey()
+        .flatMap {
+          case (docId, docFeatures) =>
+            for {
+              a <- docFeatures
+              b <- docFeatures
+              if a.id != b.id
+            } yield (a,b)
+        }
         .flatMap({
-          case ((id1, features1), (id2, features2)) =>
-            dot(features1, features2) match {
-              case similarity if similarity > threshold => Some(Edge(id1, id2, similarity))
+          case (a: SentenceFeatures, b: SentenceFeatures) =>
+            dot(a.features, b.features) match {
+              case similarity if similarity > threshold => Some(Edge(a.id, b.id, similarity))
               case _ => None
             }
         })
-    Graph(features, edges)
+    val vertices = features.map(f => (f.id, f.features))
+    Graph(vertices, edges)
   }
 
   private def selectExcerpts(sentences: RDD[Sentence], ranks: VertexRDD[Double]) = {
@@ -73,29 +82,29 @@ object LexRank {
       })
   }
 
-  private def tokenize(sentences: RDD[Sentence], stopwords: Set[String]) : RDD[TokenizedSentence] = {
+  private def tokenize(sentences: RDD[Sentence], stopwords: Set[String]) : RDD[SentenceTokens] = {
     val tokenizer = SimpleEnglishTokenizer()
     sentences.map(s => {
       val tokens = tokenizer(s.text.toLowerCase).toSeq.filter(!stopwords.contains(_)).map(stem)
-      TokenizedSentence(s.id, tokens)
+      SentenceTokens(s.id, s.docId, tokens)
     })
   }
 
-  private def vectorize(tokenizedSentences: RDD[TokenizedSentence]) : RDD[(Long, Vector)] = {
+  private def vectorize(tokens: RDD[SentenceTokens]) : RDD[SentenceFeatures] = {
     val hashingTF  = new HashingTF()
     val normalizer = new Normalizer()
     val idfModel   = new IDF()
 
-    val termFrequencies = tokenizedSentences.map(s => {
-        (s.id, hashingTF.transform(s.tokens))
+    val termFrequencies = tokens.map(t => {
+        SentenceFeatures(t.id, t.docId, hashingTF.transform(t.tokens))
     })
     
-    val idf = idfModel.fit(termFrequencies.map({ case (id, tf) => tf }))
+    val idf = idfModel.fit(termFrequencies.map({ case SentenceFeatures(_, _, tf) => tf }))
 
     termFrequencies.map({
-      case (id, tf) =>
+      case SentenceFeatures(id, docId, tf) =>
         val featureVector = normalizer.transform(idf.transform(tf))
-        (id, featureVector)
+        SentenceFeatures(id, docId, featureVector)
     })
   }
 
