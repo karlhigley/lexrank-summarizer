@@ -35,8 +35,16 @@ class LexRank(sentences: RDD[Sentence], features: RDD[SentenceFeatures]) extends
   private def buildGraph(features: RDD[SentenceFeatures], threshold: Double): Graph[Vector, Double] = {
     val edges =
       features
-        .cartesian(features)
-        .filter({ case (f1, f2) => f1.docId == f2.docId && f1.id != f2.id })
+        .map(f => (f.docId, f))
+        .groupByKey()
+        .flatMap {
+          case (docId, docFeatures) =>
+            for {
+              a <- docFeatures
+              b <- docFeatures
+              if a.id != b.id
+            } yield (a,b)
+        }
         .flatMap({
           case (a: SentenceFeatures, b: SentenceFeatures) =>
             dot(a.features, b.features) match {
