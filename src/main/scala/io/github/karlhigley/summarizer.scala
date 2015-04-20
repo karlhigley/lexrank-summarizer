@@ -18,7 +18,7 @@ import chalk.text.tokenize.SimpleEnglishTokenizer
 
 case class Document(id: String, text: String)
 case class Sentence(id: Long, docId: String, text: String)
-case class TokenizedSentence(id: Long, tokens: Seq[String])
+case class SentenceTokens(id: Long, tokens: Seq[String])
 
 class LexRank(sentences: RDD[Sentence], features: RDD[(Long, Vector)]) extends Serializable {
   def summarize() = {
@@ -73,20 +73,20 @@ object LexRank {
       })
   }
 
-  private def tokenize(sentences: RDD[Sentence], stopwords: Set[String]) : RDD[TokenizedSentence] = {
+  private def tokenize(sentences: RDD[Sentence], stopwords: Set[String]) : RDD[SentenceTokens] = {
     val tokenizer = SimpleEnglishTokenizer()
     sentences.map(s => {
       val tokens = tokenizer(s.text.toLowerCase).toSeq.filter(!stopwords.contains(_)).map(stem)
-      TokenizedSentence(s.id, tokens)
+      SentenceTokens(s.id, tokens)
     })
   }
 
-  private def vectorize(tokenizedSentences: RDD[TokenizedSentence]) : RDD[(Long, Vector)] = {
+  private def vectorize(tokens: RDD[SentenceTokens]) : RDD[(Long, Vector)] = {
     val hashingTF  = new HashingTF()
     val normalizer = new Normalizer()
     val idfModel   = new IDF()
 
-    val termFrequencies = tokenizedSentences.map(s => {
+    val termFrequencies = SentenceTokens.map(s => {
         (s.id, hashingTF.transform(s.tokens))
     })
     
