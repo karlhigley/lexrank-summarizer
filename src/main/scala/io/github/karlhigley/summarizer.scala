@@ -36,8 +36,7 @@ class LexRank(sentences: RDD[Sentence], features: RDD[SentenceFeatures]) extends
     val edges =
       features
         .cartesian(features)
-        .filter({ case (v1, v2) => v1 != v2 })
-        .distinct()
+        .filter({ case (f1, f2) => f1.docId == f2.docId && f1.id != f2.id })
         .flatMap({
           case (a: SentenceFeatures, b: SentenceFeatures) =>
             dot(a.features, b.features) match {
