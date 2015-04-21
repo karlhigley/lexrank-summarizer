@@ -1,6 +1,6 @@
 # LexRank Summarizer
 
-This is a Spark-based extractive summarizer, which selects the 5 most informative sentences from each document in a large corpus.
+This is a Spark-based extractive summarizer, based on the [LexRank algorithm](http://arxiv.org/pdf/1109.2128.pdf).  It extracts the 5 "most informative" sentences from each document in the corpus.
 
 ## Usage
 
