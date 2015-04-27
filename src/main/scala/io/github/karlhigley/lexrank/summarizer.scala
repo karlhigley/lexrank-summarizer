@@ -1,4 +1,4 @@
-package io.github.karlhigley
+package io.github.karlhigley.lexrank
 
 import scala.io.Source
 import scala.math.max
