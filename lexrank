@@ -1,1 +1,1 @@
-time spark-submit target/scala-2.10/lexrank-summarizer-assembly-0.0.1.jar --class io.github.karlhigley.lexrank.Summarizer
+time spark-submit target/scala-2.10/lexrank-summarizer-assembly-0.0.1.jar --class io.github.karlhigley.lexrank.Driver
