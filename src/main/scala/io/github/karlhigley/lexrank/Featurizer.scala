@@ -18,7 +18,7 @@ class Featurizer(stopwords: Set[String]) extends Serializable {
   def featurize(documents: RDD[Document]) = {  
     val sentences = extractSentences(documents)
     val tokenized = tokenize(sentences, stopwords)
-    val features  = vectorize(tokenized)
+    val features  = vectorize(tokenized).filter(f => f.features.indices.size > 0)
     (sentences, features)
   }
 
