@@ -34,7 +34,11 @@ class Featurizer(stopwords: Set[String]) extends Serializable {
   private def tokenize(sentences: RDD[Sentence], stopwords: Set[String]) : RDD[SentenceTokens] = {
     val tokenizer = SimpleEnglishTokenizer()
     sentences.map(s => {
-      val tokens = tokenizer(s.text.toLowerCase).toSeq.filter(!stopwords.contains(_)).map(stem)
+      val tokens = tokenizer(s.text.toLowerCase).toSeq
+                                          .filter(_.length > 3)
+                                          .filter(!stopwords.contains(_))
+                                          .map(stem)
+
       SentenceTokens(s.id, s.docId, tokens)
     })
   }
