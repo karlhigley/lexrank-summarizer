@@ -1,8 +1,10 @@
 package io.github.karlhigley.lexrank
 
-import scala.math.max
+import scala.collection.immutable.BitSet
+import scala.math.{log, max}
 
 import org.apache.spark.rdd.RDD
+import org.apache.spark.rdd.EmptyRDD
 
 import org.apache.spark.mllib.linalg.{Vector, SparseVector}
 import org.apache.spark.mllib.linalg.distributed.{CoordinateMatrix, MatrixEntry, RowMatrix}
@@ -54,13 +56,36 @@ class LexRank(features: RDD[SentenceFeatures]) extends Serializable {
     )
   }
 
-  private def compareSentences(columns: RDD[SentenceFeatures], threshold: Double): RDD[SentenceComparison] = {
-    buildRowMatrix(columns)
-      .columnSimilarities(threshold)
-      .entries
-      .flatMap(MatrixEntry.unapply(_))
-      .map(SentenceComparison.tupled)
-      .filter(_.similarity > threshold)
+  private def compareSentences(sentences: RDD[SentenceFeatures], threshold: Double): RDD[SentenceComparison] = {
+    val matrices = bucketSentences(sentences).map(buildRowMatrix(_))
+    matrices.foreach(_.rows.persist())
+
+    val similarities = matrices
+                          .map(computeSimilarities(_, threshold))
+                          .reduce(_ union _)
+                          .coalesce(sentences.partitions.size)
+
+    similarities.persist()
+    similarities.count()
+
+    matrices.foreach(_.rows.unpersist())
+
+    similarities.flatMap(MatrixEntry.unapply(_)).map(SentenceComparison.tupled)
+  }
+
+  private def bucketSentences(sentences: RDD[SentenceFeatures]) = {
+    val signatureGen  = new CosineLSH
+    val signatureBits = (log(sentences.partitions.size)/log(2)).toInt
+    
+    val signatures    = features.map(f => {
+      (signatureGen.computeSignature(f.features, signatureBits), f)
+    })
+    
+    CosineLSH
+      .signatureSet(signatureBits)
+      .map(k => {
+        signatures.filter(s => s._1 == k).map(s => s._2)
+      })
   }
 
   private def buildRowMatrix(columns: RDD[SentenceFeatures]) : RowMatrix = {   
@@ -76,5 +101,9 @@ class LexRank(features: RDD[SentenceFeatures]) extends Serializable {
 
   private def sparseElements(vector: SparseVector): Seq[(Int, Double)] = {
     vector.indices.zip(vector.values)
+  }
+
+  private def computeSimilarities(matrix: RowMatrix, threshold: Double): RDD[MatrixEntry] = {
+    matrix.columnSimilarities(threshold).entries.filter(_.value > threshold)
   }
 }
