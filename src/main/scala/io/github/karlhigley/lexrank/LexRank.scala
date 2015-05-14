@@ -1,15 +1,12 @@
 package io.github.karlhigley.lexrank
 
-import scala.collection.immutable.BitSet
 import scala.math.{log, max}
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.rdd.EmptyRDD
+import org.apache.spark.graphx._
 
 import org.apache.spark.mllib.linalg.{Vector, SparseVector}
 import org.apache.spark.mllib.linalg.distributed.{CoordinateMatrix, MatrixEntry, RowMatrix}
-
-import org.apache.spark.graphx._
 
 case class SentenceComparison(id1: Long, id2: Long, similarity: Double)
 
