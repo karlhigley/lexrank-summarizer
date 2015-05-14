@@ -9,12 +9,12 @@ Boilerplate language is detected across documents in the corpus using pairwise c
 Build a JAR file from the source with `sbt assembly`.  Submit a job to Spark with:
 
 ```
-spark-submit --class io.github.karlhigley.Summarizer <path to jar file> [options]
+spark-submit --class io.github.karlhigley.lexrank.Driver <path to jar file> [options]
 
 Options:
--i PATH, --input PATH          Relative path of input files (default: "./input")
--o PATH, --output PATH         Relative path of output files (default: "./output")
--s PATH, --stopwords PATH      Relative path of stopwords file (default: "./stopwords")
+-i PATH,  --input PATH         Relative path of input files (default: "./input")
+-o PATH,  --output PATH        Relative path of output files (default: "./output")
+-s PATH,  --stopwords PATH     Relative path of stopwords file (default: "./stopwords")
 -l VALUE, --length VALUE       Number of sentences to extract from each document (default: 5) 
 -b VALUE, --boilerplate VALUE  Similarity cutoff for cross-document boilerplate filtering (default: 0.8)
 -t VALUE, --threshold VALUE    Similarity threshold for LexRank graph construction (default: 0.1)
