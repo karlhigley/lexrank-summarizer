@@ -9,6 +9,8 @@ class Configuration(args: Array[String]) {
   var cutoff        = 0.8
   var threshold     = 0.1
   var convergence   = 0.001
+  
+  var partitions: Option[Int] = None
 
   parse(args.toList)
 
@@ -23,6 +25,10 @@ class Configuration(args: Array[String]) {
 
     case ("--stopwords" | "-s") :: path :: tail =>
       stopwordsPath = path
+      parse(tail)
+
+    case ("--partitions" | "-p") :: value :: tail =>
+      partitions = Some(value.toInt)
       parse(tail)
 
     case ("--length" | "-l") :: value :: tail =>
@@ -59,6 +65,7 @@ class Configuration(args: Array[String]) {
       |   -i PATH, --input PATH          Relative path of input files (default: "./input")
       |   -o PATH, --output PATH         Relative path of output files (default: "./output")
       |   -s PATH, --stopwords PATH      Relative path of stopwords file (default: "./stopwords")
+      |   -p VALUE, --partitions VALUE   Number of partitions for documents (default: automatic by Spark)
       |   -l VALUE, --length VALUE       Number of sentences to extract from each document (default: 5) 
       |   -b VALUE, --boilerplate VALUE  Similarity cutoff for cross-document boilerplate filtering (default: 0.8)
       |   -t VALUE, --threshold VALUE    Similarity threshold for LexRank graph construction (default: 0.1)

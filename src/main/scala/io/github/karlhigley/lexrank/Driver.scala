@@ -33,7 +33,12 @@ object Driver extends Logging {
       }
     )
 
-    val (sentences, features) = featurizer.featurize(documents)
+    val partitionedDocs = config.partitions match {
+      case Some(p) => documents.repartition(p)
+      case None    => documents
+    }
+
+    val (sentences, features) = featurizer.featurize(partitionedDocs)
 
     val model    = new LexRank(features)
     val ranks    = model.score(config.threshold, config.cutoff, config.convergence)
