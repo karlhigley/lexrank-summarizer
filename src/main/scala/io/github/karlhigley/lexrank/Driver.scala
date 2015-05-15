@@ -8,6 +8,12 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.graphx._
 
 object Driver extends Logging {
+  val serializerClasses: Array[Class[_]] = Array(
+    classOf[Document], classOf[Sentence],
+    classOf[SentenceTokens], classOf[SentenceFeatures],
+    classOf[Featurizer], classOf[CosineLSH], classOf[LexRank]
+  )
+
   private def selectExcerpts(sentences: RDD[Sentence], scores: VertexRDD[Double], length: Int) = {
     scores
       .join(sentences.map(s => (s.id, s)))
@@ -18,6 +24,8 @@ object Driver extends Logging {
 
   def main(args: Array[String]) {
     val sparkConf = new SparkConf().setAppName("Summarizer")
+    sparkConf.registerKryoClasses(serializerClasses)
+
     val sc        = new SparkContext(sparkConf)
 
     val config    = new Configuration(args)
