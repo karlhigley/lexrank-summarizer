@@ -36,7 +36,7 @@ object Driver extends Logging {
 
     val documents = sc.textFile(config.inputPath).flatMap( 
       _.split('\t').toList match {
-        case List(docId, text) => Some((docId, text))
+        case List(docId, text @ _*) => Some((docId, text.mkString(" ")))
         case _                 => None
       }
     ).reduceByKey(_ + " . " + _).map(Document.tupled)
