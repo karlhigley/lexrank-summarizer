@@ -17,7 +17,7 @@ case class SentenceFeatures(id: Long, docId: String, features: SparseVector)
 class Featurizer(stopwords: Set[String]) extends Serializable {
   def featurize(documents: RDD[Document]) = {  
     val sentences = extractSentences(documents)
-    val tokenized = tokenize(sentences, stopwords)
+    val tokenized = tokenize(sentences, stopwords).filter(_.tokens.length > 1)
     val features  = vectorize(tokenized).filter(f => f.features.indices.size > 0)
     (sentences, features)
   }
