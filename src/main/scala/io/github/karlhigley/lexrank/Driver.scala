@@ -27,24 +27,18 @@ object Driver extends Logging {
     sparkConf.registerKryoClasses(serializerClasses)
 
     val sc        = new SparkContext(sparkConf)
-
     val config    = new Configuration(args)
 
     val stopwords = Source.fromFile(config.stopwordsPath).getLines.toSet
     sc.broadcast(stopwords)
     val featurizer = new Featurizer(stopwords)
 
-    val documents = sc.textFile(config.inputPath).flatMap( 
+    val documents = sc.textFile(config.inputPath, minPartitions = config.partitions).flatMap( 
       _.split('\t').toList match {
         case List(docId, text @ _*) => Some((docId, text.mkString(" ")))
         case _                 => None
       }
     ).map(Document.tupled)
-
-    val partitionedDocs = config.partitions match {
-      case Some(p) => documents.repartition(p)
-      case None    => documents
-    }
 
     val (sentences, features) = featurizer.featurize(partitionedDocs)
 
