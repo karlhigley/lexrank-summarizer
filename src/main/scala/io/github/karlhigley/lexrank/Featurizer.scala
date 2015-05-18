@@ -45,7 +45,7 @@ class Featurizer(stopwords: Set[String]) extends Serializable {
 
   private def vectorize(tokens: RDD[SentenceTokens]) : RDD[SentenceFeatures] = {
     val hashingTF  = new HashingTF()
-    val idfModel   = new IDF()
+    val idfModel   = new IDF(minDocFreq = 2)
 
     val termFrequencies = tokens.map(t => {
         (t.id, t.docId, hashingTF.transform(t.tokens))
