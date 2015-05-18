@@ -33,8 +33,11 @@ class Featurizer(stopwords: Set[String]) extends Serializable {
 
   private def tokenize(sentences: RDD[Sentence], stopwords: Set[String]) : RDD[SentenceTokens] = {
     val tokenizer = SimpleEnglishTokenizer()
+    val nonWord   = "[^a-z]*".r
+
     sentences.map(s => {
       val tokens = tokenizer(s.text.toLowerCase).toSeq
+                                          .map(nonWord.replaceAllIn(_, ""))
                                           .filter(_.length > 3)
                                           .filter(!stopwords.contains(_))
                                           .map(stem)
