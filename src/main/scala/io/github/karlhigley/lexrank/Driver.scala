@@ -40,7 +40,7 @@ object Driver extends Logging {
       }
     ).map(Document.tupled)
 
-    val (sentences, features) = featurizer.featurize(partitionedDocs)
+    val (sentences, features) = featurizer.featurize(documents)
 
     val model    = new LexRank(features)
     val ranks    = model.score(config.threshold, config.cutoff, config.convergence)
