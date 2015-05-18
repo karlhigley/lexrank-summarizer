@@ -5,12 +5,11 @@ class Configuration(args: Array[String]) {
   var outputPath    = "output"
   var stopwordsPath = "stopwords"
 
+  var partitions    = 2
   var length        = 5
   var cutoff        = 0.8
   var threshold     = 0.1
   var convergence   = 0.001
-  
-  var partitions: Option[Int] = None
 
   parse(args.toList)
 
@@ -28,7 +27,7 @@ class Configuration(args: Array[String]) {
       parse(tail)
 
     case ("--partitions" | "-p") :: value :: tail =>
-      partitions = Some(value.toInt)
+      partitions = value.toInt
       parse(tail)
 
     case ("--length" | "-l") :: value :: tail =>
