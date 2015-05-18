@@ -39,7 +39,7 @@ object Driver extends Logging {
         case List(docId, text @ _*) => Some((docId, text.mkString(" ")))
         case _                 => None
       }
-    ).reduceByKey(_ + " . " + _).map(Document.tupled)
+    ).map(Document.tupled)
 
     val partitionedDocs = config.partitions match {
       case Some(p) => documents.repartition(p)
