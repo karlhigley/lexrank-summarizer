@@ -33,8 +33,11 @@ class Featurizer(stopwords: Set[String]) extends Serializable {
 
   private def tokenize(sentences: RDD[Sentence], stopwords: Set[String]) : RDD[SentenceTokens] = {
     val tokenizer = SimpleEnglishTokenizer()
+    val nonWord   = "[^a-z]*".r
+
     sentences.map(s => {
       val tokens = tokenizer(s.text.toLowerCase).toSeq
+                                          .map(nonWord.replaceAllIn(_, ""))
                                           .filter(_.length > 3)
                                           .filter(!stopwords.contains(_))
                                           .map(stem)
@@ -45,7 +48,7 @@ class Featurizer(stopwords: Set[String]) extends Serializable {
 
   private def vectorize(tokens: RDD[SentenceTokens]) : RDD[SentenceFeatures] = {
     val hashingTF  = new HashingTF()
-    val idfModel   = new IDF()
+    val idfModel   = new IDF(minDocFreq = 2)
 
     val termFrequencies = tokens.map(t => {
         (t.id, t.docId, hashingTF.transform(t.tokens))
