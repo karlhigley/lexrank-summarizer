@@ -54,7 +54,9 @@ class LexRank(features: RDD[SentenceFeatures]) extends Serializable {
   }
 
   private def compareSentences(sentences: RDD[SentenceFeatures], threshold: Double): RDD[SentenceComparison] = {
-    val matrices = bucketSentences(sentences).map(buildRowMatrix(_))
+    val maxColumn = sentences.map(_.id).reduce(math.max(_, _)) + 1
+
+    val matrices = bucketSentences(sentences).map(buildRowMatrix(_, 1 << 20, maxColumn))
     matrices.foreach(_.rows.persist())
 
     val similarities = matrices
@@ -85,7 +87,7 @@ class LexRank(features: RDD[SentenceFeatures]) extends Serializable {
       })
   }
 
-  private def buildRowMatrix(columns: RDD[SentenceFeatures]) : RowMatrix = {   
+  private def buildRowMatrix(columns: RDD[SentenceFeatures], rowCount: Long, colCount: Long) : RowMatrix = {
     val matrixEntries = columns.flatMap {
       case SentenceFeatures(colNum, _, vector) =>
         sparseElements(vector).map {
@@ -93,7 +95,7 @@ class LexRank(features: RDD[SentenceFeatures]) extends Serializable {
         }
     }
 
-    new CoordinateMatrix(matrixEntries).toRowMatrix()
+    new CoordinateMatrix(matrixEntries, rowCount, colCount).toRowMatrix()
   }
 
   private def sparseElements(vector: SparseVector): Seq[(Int, Double)] = {
