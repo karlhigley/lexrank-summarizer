@@ -14,7 +14,7 @@ case class Sentence(id: Long, docId: String, text: String)
 case class SentenceTokens(id: Long, docId: String, tokens: Seq[String])
 case class SentenceFeatures(id: Long, docId: String, features: SparseVector)
 
-class Featurizer(stopwords: Set[String]) extends Serializable {
+class DocumentSegmenter(stopwords: Set[String]) extends Serializable {
   def featurize(documents: RDD[Document]) = {  
     val sentences = extractSentences(documents)
     val tokenized = tokenize(sentences, stopwords)
