@@ -8,7 +8,8 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % "1.3.1" % "provided",
   "org.apache.spark" %% "spark-mllib" % "1.3.1" % "provided",
   "org.scalanlp" %% "breeze" % "0.11.2",
-  "org.scalanlp" %% "chalk" % "1.3.2" exclude ("com.typesafe.sbt", "sbt-pgp")
+  "org.scalanlp" %% "chalk" % "1.3.2" exclude ("com.typesafe.sbt", "sbt-pgp"),
+  "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 )
 
 resolvers ++= Seq(
@@ -16,3 +17,5 @@ resolvers ++= Seq(
   "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/",
   "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 )
+
+parallelExecution in Test := false
