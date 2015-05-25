@@ -18,10 +18,13 @@ class Featurizer extends Serializable {
     
     val idf = idfModel.fit(termFrequencies.map({ case (_, _, tf) => tf }))
 
-    termFrequencies.map({
-      case (id, docId, tf) =>
-        val featureVector = idf.transform(tf).asInstanceOf[SparseVector]
-        SentenceFeatures(id, docId, featureVector)
-    })
+    termFrequencies
+      .map({
+        case (id, docId, tf) =>
+          val tfidfVector = idf.transform(tf).asInstanceOf[SparseVector]
+          val (indices, values) = tfidfVector.indices.zip(tfidfVector.values).filter(_._2 > 0.0).unzip
+          val featureVector = new SparseVector(tfidfVector.size, indices.toArray, values.toArray)
+          SentenceFeatures(id, docId, featureVector)
+      })
   }
 }
