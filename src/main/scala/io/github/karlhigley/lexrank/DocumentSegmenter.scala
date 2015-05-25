@@ -12,14 +12,12 @@ import chalk.text.tokenize.SimpleEnglishTokenizer
 case class Document(id: String, text: String)
 case class Sentence(id: Long, docId: String, text: String)
 case class SentenceTokens(id: Long, docId: String, tokens: Seq[String])
-case class SentenceFeatures(id: Long, docId: String, features: SparseVector)
 
 class DocumentSegmenter(stopwords: Set[String]) extends Serializable {
-  def featurize(documents: RDD[Document]) = {  
+  def apply(documents: RDD[Document]) = {  
     val sentences = extractSentences(documents)
     val tokenized = tokenize(sentences, stopwords)
-    val features  = vectorize(tokenized).filter(f => f.features.indices.size > 0)
-    (sentences, features)
+    (sentences, tokenized)
   }
 
   private def extractSentences(documents: RDD[Document]) : RDD[Sentence] = {
@@ -43,23 +41,6 @@ class DocumentSegmenter(stopwords: Set[String]) extends Serializable {
                                           .map(stem)
 
       SentenceTokens(s.id, s.docId, tokens)
-    })
-  }
-
-  private def vectorize(tokens: RDD[SentenceTokens]) : RDD[SentenceFeatures] = {
-    val hashingTF  = new HashingTF()
-    val idfModel   = new IDF(minDocFreq = 2)
-
-    val termFrequencies = tokens.map(t => {
-        (t.id, t.docId, hashingTF.transform(t.tokens))
-    })
-    
-    val idf = idfModel.fit(termFrequencies.map({ case (_, _, tf) => tf }))
-
-    termFrequencies.map({
-      case (id, docId, tf) =>
-        val featureVector = idf.transform(tf).asInstanceOf[SparseVector]
-        SentenceFeatures(id, docId, featureVector)
     })
   }
 

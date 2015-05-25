@@ -31,8 +31,7 @@ object Driver extends Logging {
 
     val stopwords = Source.fromFile(config.stopwordsPath).getLines.toSet
     sc.broadcast(stopwords)
-    val featurizer = new Featurizer(stopwords)
-
+    
     val documents = sc.textFile(config.inputPath, minPartitions = config.partitions).flatMap( 
       _.split('\t').toList match {
         case List(docId, text @ _*) => Some((docId, text.mkString(" ")))
@@ -40,7 +39,11 @@ object Driver extends Logging {
       }
     ).map(Document.tupled)
 
-    val (sentences, features) = featurizer.featurize(documents)
+    val segmenter = new DocumentSegmenter(stopwords)
+    val (sentences, tokenized) = segmenter(documents)
+
+    val featurizer = new Featurizer
+    val features = featurizer(tokenized)
 
     val model    = new LexRank(features)
     val ranks    = model.score(config.threshold, config.cutoff, config.convergence)
