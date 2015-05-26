@@ -26,5 +26,6 @@ class Featurizer extends Serializable {
           val featureVector = new SparseVector(tfidfVector.size, indices.toArray, values.toArray)
           SentenceFeatures(id, docId, featureVector)
       })
+      .filter(_.features.indices.size > 0)
   }
 }

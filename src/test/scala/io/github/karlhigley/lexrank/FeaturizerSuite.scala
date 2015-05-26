@@ -14,4 +14,17 @@ class FeaturizerSuite extends FunSuite with TestSparkContext {
     val featurized = featurizer(sentences).collect()
     assert(featurized(0).features.indices.size === 2)
   }
+
+  test("zero vectors are omitted") {
+    val sentences = sc.parallelize(List(sentence1))
+    val featurized = featurizer(sentences).collect()
+    assert(featurized.length === 0)
+  }
+
+  test("empty vectors are omitted") {
+    val sentence = SentenceTokens(4L, "doc1", List())
+    val sentences = sc.parallelize(List(sentence))
+    val featurized = featurizer(sentences).collect()
+    assert(featurized.length === 0)
+  }
 }
