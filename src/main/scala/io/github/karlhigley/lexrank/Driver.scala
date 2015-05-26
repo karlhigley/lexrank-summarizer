@@ -45,7 +45,10 @@ object Driver extends Logging {
     val featurizer = new Featurizer
     val features = featurizer(tokenized)
 
-    val model    = new LexRank(features)
+    val comparer = new SimilarityComparison(config.threshold)
+    val comparisons = comparer(features)
+
+    val model    = new LexRank(features, comparisons)
     val ranks    = model.score(config.threshold, config.cutoff, config.convergence)
     val excerpts = selectExcerpts(sentences, ranks, config.length)
 
