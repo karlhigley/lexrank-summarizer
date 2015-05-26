@@ -48,8 +48,8 @@ object Driver extends Logging {
     val comparer = new SimilarityComparison(config.threshold)
     val comparisons = comparer(features)
 
-    val model    = new LexRank(features, comparisons)
-    val ranks    = model.score(config.threshold, config.cutoff, config.convergence)
+    val model    = LexRank.build(features, comparisons)
+    val ranks    = model.score(config.cutoff, config.convergence)
     val excerpts = selectExcerpts(sentences, ranks, config.length)
 
     excerpts
