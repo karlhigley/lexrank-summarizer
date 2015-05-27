@@ -35,7 +35,7 @@ object LexRank {
 
     val edges = comparisons
                   .flatMap(c => SentenceComparison.unapply(c))
-                  .map(e => Edge(e._1, e._2, e._3))    
+                  .flatMap(e => List(Edge(e._1, e._2, e._3), Edge(e._2, e._1, e._3)))    
 
     new LexRank(Graph(vertices, edges))
   }
