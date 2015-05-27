@@ -38,7 +38,8 @@ class SimilarityComparison(threshold: Double) extends Serializable {
     
     val signatures    = sentences.map(s => {
       (signatureGen.computeSignature(s.features, signatureBits), s)
-    })
+    }).cache()
+    signatures.count()
     
     CosineLSH
       .signatureSet(signatureBits)
