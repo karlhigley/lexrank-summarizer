@@ -13,7 +13,7 @@ class SimilarityComparison(threshold: Double) extends Serializable {
   def apply(sentences: RDD[SentenceFeatures]): RDD[SentenceComparison] = {
     val maxColumn = sentences.map(_.id).reduce(math.max(_, _)) + 1
 
-    val matrices = bucketSentences(sentences).map(buildRowMatrix(_, 1 << 20, maxColumn))
+    val matrices = bucketSentences(sentences).flatMap(buildRowMatrix(_, 1 << 20, maxColumn))
     matrices.foreach(_.rows.persist())
 
     val similarities = matrices
@@ -47,7 +47,7 @@ class SimilarityComparison(threshold: Double) extends Serializable {
       })
   }
 
-  private def buildRowMatrix(columns: RDD[SentenceFeatures], rowCount: Long, colCount: Long) : RowMatrix = {
+  private def buildRowMatrix(columns: RDD[SentenceFeatures], rowCount: Long, colCount: Long) : Option[RowMatrix] = {
     val matrixEntries = columns.flatMap {
       case SentenceFeatures(colNum, _, vector) =>
         sparseElements(vector).map {
@@ -55,7 +55,10 @@ class SimilarityComparison(threshold: Double) extends Serializable {
         }
     }
 
-    new CoordinateMatrix(matrixEntries, rowCount, colCount).toRowMatrix()
+    matrixEntries.isEmpty() match {
+      case true => None
+      case _    => Some(new CoordinateMatrix(matrixEntries, rowCount, colCount).toRowMatrix())
+    }    
   }
 
   private def sparseElements(vector: SparseVector): Seq[(Int, Double)] = {
