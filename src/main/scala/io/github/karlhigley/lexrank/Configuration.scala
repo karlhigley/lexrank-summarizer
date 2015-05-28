@@ -6,6 +6,7 @@ class Configuration(args: Array[String]) {
   var stopwordsPath = "stopwords"
 
   var partitions    = 2
+  var buckets       = 64
   var length        = 5
   var cutoff        = 0.8
   var threshold     = 0.1
@@ -28,6 +29,10 @@ class Configuration(args: Array[String]) {
 
     case ("--partitions" | "-p") :: value :: tail =>
       partitions = value.toInt
+      parse(tail)
+
+    case ("--buckets" | "-k") :: value :: tail =>
+      buckets = value.toInt
       parse(tail)
 
     case ("--length" | "-l") :: value :: tail =>
@@ -65,6 +70,7 @@ class Configuration(args: Array[String]) {
       |   -o PATH, --output PATH         Relative path of output files (default: "./output")
       |   -s PATH, --stopwords PATH      Relative path of stopwords file (default: "./stopwords")
       |   -p VALUE, --partitions VALUE   Number of partitions for documents (default: automatic by Spark)
+      |   -k VALUE, --buckets VALUE      Number of LSH buckets for documents (default: 64)
       |   -l VALUE, --length VALUE       Number of sentences to extract from each document (default: 5) 
       |   -b VALUE, --boilerplate VALUE  Similarity cutoff for cross-document boilerplate filtering (default: 0.8)
       |   -t VALUE, --threshold VALUE    Similarity threshold for LexRank graph construction (default: 0.1)
