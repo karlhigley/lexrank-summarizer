@@ -38,7 +38,7 @@ object Driver extends Logging {
         case List(docId, text @ _*) => Some((docId, text.mkString(" ")))
         case _                 => None
       }
-    ).map(Document.tupled)
+    ).reduceByKey(_ + _).map(Document.tupled)
 
     val segmenter = new DocumentSegmenter(stopwords)
     val (sentences, tokenized) = segmenter(documents)
