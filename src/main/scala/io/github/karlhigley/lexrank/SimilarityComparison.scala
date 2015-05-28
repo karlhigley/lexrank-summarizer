@@ -7,13 +7,13 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.{Vector, SparseVector}
 import org.apache.spark.mllib.linalg.distributed.{CoordinateMatrix, MatrixEntry, RowMatrix}
 
-class SimilarityComparison(threshold: Double) extends Serializable {
+class SimilarityComparison(threshold: Double, buckets: Int) extends Serializable {
   val signatureGen = new CosineLSH
 
   def apply(sentences: RDD[SentenceFeatures]): RDD[SentenceComparison] = {
     val maxColumn = sentences.map(_.id).reduce(math.max(_, _)) + 1
 
-    val matrices = bucketSentences(sentences).flatMap(buildRowMatrix(_, 1 << 20, maxColumn))
+    val matrices = bucketSentences(sentences, buckets).flatMap(buildRowMatrix(_, 1 << 20, maxColumn))
     matrices.foreach(_.rows.persist())
 
     val similarities = matrices
@@ -33,8 +33,8 @@ class SimilarityComparison(threshold: Double) extends Serializable {
     matrix.columnSimilarities(threshold).entries.filter(_.value > threshold)
   }
 
-  private def bucketSentences(sentences: RDD[SentenceFeatures]) = {
-    val signatureBits = (log(sentences.partitions.size)/log(2)).toInt
+  private def bucketSentences(sentences: RDD[SentenceFeatures], buckets: Int) = {
+    val signatureBits = (log(buckets)/log(2)).toInt
     
     val signatures    = sentences.map(s => {
       (signatureGen.computeSignature(s.features, signatureBits), s)

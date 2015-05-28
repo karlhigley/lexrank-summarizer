@@ -45,7 +45,7 @@ object Driver extends Logging {
     val featurizer = new Featurizer
     val features = featurizer(tokenized)
 
-    val comparer = new SimilarityComparison(config.threshold)
+    val comparer = new SimilarityComparison(config.threshold, config.buckets)
     val comparisons = comparer(features)
 
     val model    = LexRank.build(features, comparisons)
