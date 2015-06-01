@@ -9,6 +9,8 @@ import org.apache.spark.mllib.linalg.{Vector, DenseVector, SparseVector}
 import org.apache.spark.mllib.linalg.distributed.{CoordinateMatrix, MatrixEntry}
 import org.apache.spark.rdd.RDD
 
+import io.github.karlhigley.lexrank.linalg.SparseVectorImplicits._
+
 class RowMatrixOps(val rows: RDD[Vector]) {
   def columnSimilarities(colMags: SparseVector, threshold: Double): CoordinateMatrix = {
     require(threshold >= 0, s"Threshold cannot be negative: $threshold")
@@ -38,11 +40,11 @@ class RowMatrixOps(val rows: RDD[Vector]) {
     val sg = math.sqrt(gamma) // sqrt(gamma) used many times
 
     // Don't divide by zero for those columns with zero magnitude
-    val colMagsCorrected = new SparseVector(colMags.size, colMags.indices, colMags.values.map(x => if (x == 0) 1.0 else x))
+    val colMagsCorrected = colMags.mapValues(x => if (x == 0) 1.0 else x)
 
     val sc = rows.context
-    val pBV = sc.broadcast(new SparseVector(colMags.size, colMags.indices, colMags.values.map(c => sg / c)))
-    val qBV = sc.broadcast(new SparseVector(colMags.size, colMags.indices, colMags.values.map(c => math.min(sg, c))))
+    val pBV = sc.broadcast(colMags.mapValues(c => sg / c))
+    val qBV = sc.broadcast(colMags.mapValues(c => math.min(sg, c)))
 
     val sims = rows.mapPartitionsWithIndex { (indx, iter) =>
       val p = pBV.value
