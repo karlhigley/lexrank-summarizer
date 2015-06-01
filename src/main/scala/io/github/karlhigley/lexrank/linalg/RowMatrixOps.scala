@@ -53,7 +53,6 @@ class RowMatrixOps(val rows: RDD[Vector]) {
       val rand = new Random(indx)
       val scaled = new Array[Double](p.size)
       iter.flatMap { row =>
-        val buf = new ListBuffer[((Int, Int), Double)]()
         row match {
           case SparseVector(size, indices, values) =>
             val nnz = indices.size
@@ -62,8 +61,9 @@ class RowMatrixOps(val rows: RDD[Vector]) {
               scaled(k) = values(k) / q(indices(k))
               k += 1
             }
-            k = 0
-            while (k < nnz) {
+
+            Iterator.tabulate (nnz) { k =>
+              val buf = new ListBuffer[((Int, Int), Double)]()
               val i = indices(k)
               val iVal = scaled(k)
               if (iVal != 0 && rand.nextDouble() < p(i)) {
@@ -77,8 +77,8 @@ class RowMatrixOps(val rows: RDD[Vector]) {
                   l += 1
                 }
               }
-              k += 1
-            }
+              buf
+            }.flatten
           /*
           case DenseVector(values) =>
             val n = values.size
@@ -87,8 +87,8 @@ class RowMatrixOps(val rows: RDD[Vector]) {
               scaled(i) = values(i) / q(i)
               i += 1
             }
-            i = 0
-            while (i < n) {
+            Iterator.tabulate (n) { i =>
+              val buf = new ListBuffer[((Int, Int), Double)]()
               val iVal = scaled(i)
               if (iVal != 0 && rand.nextDouble() < p(i)) {
                 var j = i + 1
@@ -100,11 +100,10 @@ class RowMatrixOps(val rows: RDD[Vector]) {
                   j += 1
                 }
               }
-              i += 1
-            }
-            */
+              buf
+            }.flatten
+          */
         }
-        buf
       }
     }.reduceByKey(_ + _).map { case ((i, j), sim) =>
       MatrixEntry(i.toLong, j.toLong, sim)
