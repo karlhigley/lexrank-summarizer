@@ -11,7 +11,8 @@ object Driver extends Logging {
   val serializerClasses: Array[Class[_]] = Array(
     classOf[Document], classOf[Sentence],
     classOf[SentenceTokens], classOf[SentenceFeatures],
-    classOf[Featurizer], classOf[CosineLSH], classOf[LexRank]
+    classOf[Featurizer], classOf[SignRandomProjectionLSH],
+    classOf[LexRank]
   )
 
   private def selectExcerpts(sentences: RDD[Sentence], scores: VertexRDD[Double], length: Int) = {

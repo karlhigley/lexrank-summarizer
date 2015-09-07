@@ -8,8 +8,8 @@ import scala.util.hashing.MurmurHash3
 import org.apache.spark.mllib.linalg.SparseVector
 import org.apache.spark.Logging
 
-class CosineLSH(poolSize: Int = 10000) extends Serializable with Logging {
-  val pool = CosineLSH.generatePool(poolSize)
+class SignRandomProjectionLSH(poolSize: Int = 10000) extends Serializable with Logging {
+  val pool = SignRandomProjectionLSH.generatePool(poolSize)
   
   def computeSignature(vector: SparseVector, length: Int): BitSet = {
     val buf = ArrayBuffer.empty[Int]
@@ -33,7 +33,7 @@ class CosineLSH(poolSize: Int = 10000) extends Serializable with Logging {
   }
 }
 
-object CosineLSH {
+object SignRandomProjectionLSH {
   def signatureSet(length: Int): Set[BitSet] = {
     BitSet(1 to length:_*).subsets.toSet
   }
