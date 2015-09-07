@@ -4,8 +4,8 @@ import org.scalatest.FunSuite
 
 import org.apache.spark.mllib.linalg.SparseVector
 
-class CosineLSHSuite extends FunSuite with TestSparkContext {
-  val lshModel = new CosineLSH
+class SignRandomProjectionLSHSuite extends FunSuite with TestSparkContext {
+  val lshModel = new SignRandomProjectionLSH
 
   test("signatures are deterministic") {
     val nonzero = new SparseVector(3, Array(1,2,3), Array(1,1,1))
