@@ -46,15 +46,12 @@ object Driver extends Logging {
     val tokenizedFilteredByLength = tokenized.filter(t => t.tokens.size > 2)
 
     val featurizer = new Featurizer
-    val features = featurizer(tokenizedFilteredByLength).cache()
+    val features = featurizer(tokenizedFilteredByLength)
 
-    val comparer = new SimilarityComparison(config.threshold, config.buckets)
-    val comparisons = comparer(features)
-
-    val model    = LexRank.build(features, comparisons)
+    val model    = LexRank.build(features)
     val ranks    = model.score(config.cutoff, config.convergence)
     val excerpts = selectExcerpts(sentences, ranks, config.length)
-
+ 
     excerpts
       .map(_.productIterator.toList.mkString("\t"))
       .saveAsTextFile(config.outputPath)
