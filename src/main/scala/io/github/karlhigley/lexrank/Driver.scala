@@ -35,10 +35,10 @@ object Driver extends Logging {
     
     val documents = sc.textFile(config.inputPath, minPartitions = config.partitions).flatMap( 
       _.split('\t').toList match {
-        case List(docId, text @ _*) => Some((docId, text.mkString(" ")))
+        case List(docId, text @ _*) => Some((docId.trim, text.mkString(" ")))
         case _                 => None
       }
-    ).reduceByKey(_ + _).map(Document.tupled)
+    ).reduceByKey(_ + _).map(Document.tupled).filter(d => d.id.length > 0)
 
     val segmenter = new DocumentSegmenter(stopwords)
     val (sentences, tokenized) = segmenter(documents)
