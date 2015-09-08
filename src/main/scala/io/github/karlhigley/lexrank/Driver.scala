@@ -43,8 +43,10 @@ object Driver extends Logging {
     val segmenter = new DocumentSegmenter(stopwords)
     val (sentences, tokenized) = segmenter(documents)
 
+    val tokenizedFilteredByLength = tokenized.filter(t => t.tokens.size > 2)
+
     val featurizer = new Featurizer
-    val features = featurizer(tokenized)
+    val features = featurizer(tokenizedFilteredByLength).cache()
 
     val comparer = new SimilarityComparison(config.threshold, config.buckets)
     val comparisons = comparer(features)
