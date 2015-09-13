@@ -5,8 +5,8 @@ version := "0.0.1"
 scalaVersion := "2.10.4"
 
 libraryDependencies ++= Seq(
-  "org.apache.spark" %% "spark-core" % "1.4.1" % "provided",
-  "org.apache.spark" %% "spark-mllib" % "1.4.1" % "provided",
+  "org.apache.spark" %% "spark-core" % "1.5.0" % "provided",
+  "org.apache.spark" %% "spark-mllib" % "1.5.0" % "provided",
   "org.scalanlp" %% "breeze" % "0.11.2",
   "org.scalanlp" %% "chalk" % "1.3.2" exclude ("com.typesafe.sbt", "sbt-pgp"),
   "org.scalatest" %% "scalatest" % "2.2.4" % "test",
