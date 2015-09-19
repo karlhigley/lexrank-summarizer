@@ -23,6 +23,7 @@ class DocumentSegmenter(stopwords: Set[String]) extends Serializable {
   private def extractSentences(documents: RDD[Document]) : RDD[Sentence] = {
     documents
       .flatMap(d => segment(d.text).map(t => (d.id, t)) )
+      .distinct()
       .zipWithIndex()
       .map({
         case ((docId, sentenceText), sentenceId) => Sentence(sentenceId, docId, sentenceText)
