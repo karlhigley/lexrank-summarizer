@@ -14,12 +14,12 @@ class LexRankSuite extends FunSuite with TestSparkContext {
   test("vertices above similarity cutoff are removed") {
     val features = sc.parallelize(List(feature1, feature2))
 
-    val comparison1 = SentenceComparison(1L, 2L, 0.9)
+    val comparison1 = SentenceComparison(1L, 2L, 0.9f)
     val comparisons = sc.parallelize(List(comparison1))
 
     val lexrank = LexRank.build(features, comparisons)
 
-    val scores = lexrank.score(cutoff = 0.8)
+    val scores = lexrank.score(cutoff = 0.8f)
 
     assert(scores.count() === 0)
   }
@@ -27,12 +27,12 @@ class LexRankSuite extends FunSuite with TestSparkContext {
   test("vertices below similarity cutoff are retained") {
     val features = sc.parallelize(List(feature2, feature3))
 
-    val comparison1 = SentenceComparison(2L, 3L, 0.5)
+    val comparison1 = SentenceComparison(2L, 3L, 0.5f)
     val comparisons = sc.parallelize(List(comparison1))
 
     val lexrank = LexRank.build(features, comparisons)
 
-    val scores = lexrank.score(cutoff = 0.8)
+    val scores = lexrank.score(cutoff = 0.8f)
 
     assert(scores.count() === 2)
   }

@@ -8,9 +8,9 @@ class Configuration(args: Array[String]) {
   var partitions    = 2
   var buckets       = 64
   var length        = 5
-  var cutoff        = 0.8
-  var threshold     = 0.1
-  var convergence   = 0.001
+  var cutoff        = 0.8f
+  var threshold     = 0.1f
+  var convergence   = 0.001f
 
   parse(args.toList)
 
@@ -40,15 +40,15 @@ class Configuration(args: Array[String]) {
       parse(tail)
 
     case ("--boilerplate" | "-b") :: value :: tail =>
-      cutoff = value.toDouble
+      cutoff = value.toFloat
       parse(tail)
 
     case ("--threshold" | "-t") :: value :: tail =>
-      threshold = value.toDouble
+      threshold = value.toFloat
       parse(tail)
 
     case ("--convergence" | "-c") :: value :: tail =>
-      convergence = value.toDouble
+      convergence = value.toFloat
       parse(tail)
 
     case ("--help" | "-h") :: tail =>
