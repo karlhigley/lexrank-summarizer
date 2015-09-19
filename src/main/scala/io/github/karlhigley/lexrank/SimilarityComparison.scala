@@ -26,7 +26,7 @@ class SimilarityComparison(threshold: Double, buckets: Int) extends Serializable
 
     matrices.foreach(_.rows.unpersist())
 
-    similarities.flatMap(MatrixEntry.unapply(_)).map(SentenceComparison.tupled)
+    similarities.flatMap(MatrixEntry.unapply(_)).map(s => SentenceComparison(s._1, s._2, s._3.toFloat))
   }
 
   private def computeSimilarities(matrix: RowMatrix, threshold: Double): RDD[MatrixEntry] = {
