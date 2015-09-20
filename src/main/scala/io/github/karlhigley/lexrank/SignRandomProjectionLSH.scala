@@ -31,11 +31,17 @@ class SignRandomProjectionLSH(poolSize: Int = 10000) extends Serializable with L
 
     BitSet(buf.toArray:_*)
   }
+  
 }
 
 object SignRandomProjectionLSH {
   def signatureSet(length: Int): Set[BitSet] = {
     BitSet(1 to length:_*).subsets.toSet
+  }
+
+  def estimateCosine(a: BitSet, b: BitSet, length: Int): Double = {
+    val hammingDistance = (a^b).size
+    math.cos(hammingDistance.toDouble/length.toDouble*math.Pi)
   }
 
   private def generatePool(size: Int): Array[Double] = {
