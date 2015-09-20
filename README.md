@@ -2,7 +2,7 @@
 
 This is a Spark-based extractive summarizer, based on the [LexRank algorithm](http://arxiv.org/pdf/1109.2128.pdf).  It extracts a 5 sentence summary from each document in the corpus.
 
-Boilerplate language is detected across documents in the corpus using the frequency of [sign-random projection locality-sensitive hashing](http://www.cs.princeton.edu/~moses/papers/similar.ps) (SRP-LSH) signatures of sentences, and within documents in the corpus using estimations of cosine similarity between sentences based on the SRP-LSH signatures.
+Boilerplate sentences are detected across all documents in the corpus using frequent [sign-random projection locality-sensitive hashing](http://www.cs.princeton.edu/~moses/papers/similar.ps) (SRP-LSH) signatures, and detected within documents in the corpus using estimations of cosine similarity based on the SRP-LSH signatures.
 
 ## Usage
 
