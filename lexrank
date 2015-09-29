@@ -1,1 +1,0 @@
-time spark-submit --driver-memory 2g --executor-memory 2g --class io.github.karlhigley.lexrank.Driver target/scala-2.10/lexrank-summarizer-assembly-0.0.1.jar
