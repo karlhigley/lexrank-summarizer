@@ -9,6 +9,14 @@ class FeaturizerSuite extends FunSuite with TestSparkContext {
 
   val featurizer = new Featurizer
 
+  test("feature vectors include only non-zero entries") {
+    val sentences = sc.parallelize(List(sentence1, sentence2, sentence3))
+    val featurized = featurizer(sentences).collect()
+    featurized.foreach { f =>
+        assert(!f.features.values.contains(0.0))
+    }
+  }
+
   test("single occurrence tokens are ignored") {
     val sentences = sc.parallelize(List(sentence1, sentence2, sentence3))
     val featurized = featurizer(sentences).collect()
