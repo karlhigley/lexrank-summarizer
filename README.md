@@ -14,7 +14,7 @@ spark-submit --class io.github.karlhigley.lexrank.Driver <path to jar file> [opt
 Options:
 -i PATH,  --input PATH         Relative path of input files (default: "./input")
 -o PATH,  --output PATH        Relative path of output files (default: "./output")
--s PATH,  --stopwords PATH     Relative path of stopwords file (default: "./stopwords")
+-s VALUE, --stopwords VALUE    Number of stopwords to remove (default: 250)
 -l VALUE, --length VALUE       Number of sentences to extract from each document (default: 5) 
 -b VALUE, --boilerplate VALUE  Similarity cutoff for cross-document boilerplate filtering (default: 0.8)
 -t VALUE, --threshold VALUE    Similarity threshold for LexRank graph construction (default: 0.1)
@@ -26,5 +26,3 @@ Options:
 The summarizer expects tab-separated text files with each document on a single line.  Each line should contain a document identifier in the first column and the document text in the second column.
 
 Outputs are formatted similarly, but with the text of a single sentence in the second column.
-
-Stopwords are provided as a text file with one word per line.
