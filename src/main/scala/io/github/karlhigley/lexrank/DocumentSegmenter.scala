@@ -13,10 +13,10 @@ case class Document(id: String, text: String)
 case class Sentence(id: Long, docId: String, text: String)
 case class SentenceTokens(id: Long, docId: String, tokens: Seq[String])
 
-class DocumentSegmenter(stopwords: Set[String]) extends Serializable {
+class DocumentSegmenter extends Serializable {
   def apply(documents: RDD[Document]) = {  
     val sentences = extractSentences(documents)
-    val tokenized = tokenize(sentences, stopwords)
+    val tokenized = tokenize(sentences)
     (sentences, tokenized)
   }
 
@@ -29,7 +29,7 @@ class DocumentSegmenter(stopwords: Set[String]) extends Serializable {
       })
   }
 
-  private def tokenize(sentences: RDD[Sentence], stopwords: Set[String]) : RDD[SentenceTokens] = {
+  private def tokenize(sentences: RDD[Sentence]) : RDD[SentenceTokens] = {
     val tokenizer = SimpleEnglishTokenizer()
     val nonWord   = "[^a-z]*".r
 
@@ -37,7 +37,6 @@ class DocumentSegmenter(stopwords: Set[String]) extends Serializable {
       val tokens = tokenizer(s.text.toLowerCase).toSeq
                                           .map(nonWord.replaceAllIn(_, ""))
                                           .filter(_.length > 3)
-                                          .filter(!stopwords.contains(_))
                                           .map(stem)
 
       SentenceTokens(s.id, s.docId, tokens)

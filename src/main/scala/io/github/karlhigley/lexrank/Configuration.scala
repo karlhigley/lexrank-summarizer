@@ -3,7 +3,6 @@ package io.github.karlhigley.lexrank
 class Configuration(args: Array[String]) {
   var inputPath     = "input"
   var outputPath    = "output"
-  var stopwordsPath = "stopwords"
 
   var partitions    = 2
   var buckets       = 64
@@ -21,10 +20,6 @@ class Configuration(args: Array[String]) {
 
     case ("--output" | "-o") :: path :: tail =>
       outputPath = path
-      parse(tail)
-
-    case ("--stopwords" | "-s") :: path :: tail =>
-      stopwordsPath = path
       parse(tail)
 
     case ("--partitions" | "-p") :: value :: tail =>
@@ -68,7 +63,6 @@ class Configuration(args: Array[String]) {
       |Options:
       |   -i PATH, --input PATH          Relative path of input files (default: "./input")
       |   -o PATH, --output PATH         Relative path of output files (default: "./output")
-      |   -s PATH, --stopwords PATH      Relative path of stopwords file (default: "./stopwords")
       |   -p VALUE, --partitions VALUE   Number of partitions for documents (default: automatic by Spark)
       |   -k VALUE, --buckets VALUE      Number of LSH buckets for documents (default: 64)
       |   -l VALUE, --length VALUE       Number of sentences to extract from each document (default: 5) 

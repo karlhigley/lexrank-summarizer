@@ -29,9 +29,6 @@ object Driver extends Logging {
 
     val sc        = new SparkContext(sparkConf)
     val config    = new Configuration(args)
-
-    val stopwords = Source.fromFile(config.stopwordsPath).getLines.toSet
-    sc.broadcast(stopwords)
     
     val documents = sc.textFile(config.inputPath, minPartitions = config.partitions).flatMap( 
       _.split('\t').toList match {
@@ -40,7 +37,7 @@ object Driver extends Logging {
       }
     ).map(Document.tupled).filter(d => d.id.length > 0)
 
-    val segmenter = new DocumentSegmenter(stopwords)
+    val segmenter = new DocumentSegmenter
     val (sentences, tokenized) = segmenter(documents)
 
     val tokenizedFilteredByLength = tokenized.filter(t => t.tokens.size > 2)
