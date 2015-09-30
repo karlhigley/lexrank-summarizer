@@ -22,8 +22,7 @@ class DocumentSegmenterSuite extends FunSuite with TestSparkContext {
     Spark had over 465 contributors in 2014, making it the most active project in the Apache Software Foundation and among Big Data open source projects.
   """
 
-  val stopwords = List("also", "over", "only", "most").toSet
-  val segmenter = new DocumentSegmenter(stopwords)
+  val segmenter = new DocumentSegmenter
 
   val localDocs = List(doc1, doc2, doc3).zipWithIndex.map({ case (text, id) => Document(id.toString, text) })
 
@@ -39,15 +38,6 @@ class DocumentSegmenterSuite extends FunSuite with TestSparkContext {
     val tokens = tokenized.flatMap(_.tokens).collect()
     tokens.foreach { t =>
       assert("^[a-z]*$".r.findFirstIn(t).isEmpty === false)
-    }
-  }
-
-  test("stopwords are removed") {
-    val documents = sc.parallelize(localDocs)
-    val (sentences, tokenized) = segmenter(documents)
-    val tokens = tokenized.flatMap(_.tokens).collect()
-    stopwords.foreach { s =>
-      assert(tokens.find(_ == s).isEmpty === true)
     }
   }
 
