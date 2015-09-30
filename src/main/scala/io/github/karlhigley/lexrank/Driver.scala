@@ -42,7 +42,7 @@ object Driver extends Logging {
 
     val tokenizedFilteredByLength = tokenized.filter(t => t.tokens.size > 2)
 
-    val featurizer = new Featurizer
+    val featurizer = new Featurizer(config.numStopwords)
     val features = featurizer(tokenizedFilteredByLength)
 
     val model    = LexRank.build(features)

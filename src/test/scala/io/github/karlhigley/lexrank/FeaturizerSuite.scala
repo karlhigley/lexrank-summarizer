@@ -6,7 +6,7 @@ class FeaturizerSuite extends FunSuite with TestSparkContext {
   val allSentences = List(
     SentenceTokens(1L, "doc1", List("one", "two", "three")),
     SentenceTokens(2L, "doc1", List("three", "four", "five")),
-    SentenceTokens(3L, "doc1", List("five", "six", "one")),
+    SentenceTokens(3L, "doc1", List("five", "six", "one", "three")),
     SentenceTokens(4L, "doc1", List("alpha", "beta", "gamma")),
     SentenceTokens(5L, "doc1", List())
   )
@@ -33,4 +33,15 @@ class FeaturizerSuite extends FunSuite with TestSparkContext {
     assert(featurized.length === 3)
   }
 
+  test("stopwords are removed") {
+    val stopwordsFeaturizer = new Featurizer(numStopwords = 1)
+    
+    val sentences = sc.parallelize(allSentences)
+    val featurized = stopwordsFeaturizer(sentences).collect()
+
+    val stopwordIndex = stopwordsFeaturizer.indexOf("three")
+    featurized.foreach { f =>
+        assert(!f.features.indices.contains(stopwordIndex))
+    }
+  }
 }
