@@ -5,7 +5,6 @@ class Configuration(args: Array[String]) {
   var outputPath    = "output"
 
   var partitions    = 2
-  var buckets       = 64
   var numStopwords  = 250
   var length        = 5
   var cutoff        = 0.8f
@@ -25,10 +24,6 @@ class Configuration(args: Array[String]) {
 
     case ("--partitions" | "-p") :: value :: tail =>
       partitions = value.toInt
-      parse(tail)
-
-    case ("--buckets" | "-k") :: value :: tail =>
-      buckets = value.toInt
       parse(tail)
 
     case ("--stopwords" | "-s") :: value :: tail =>
@@ -69,7 +64,6 @@ class Configuration(args: Array[String]) {
       |   -i PATH, --input PATH          Relative path of input files (default: "./input")
       |   -o PATH, --output PATH         Relative path of output files (default: "./output")
       |   -p VALUE, --partitions VALUE   Number of partitions for documents (default: automatic by Spark)
-      |   -k VALUE, --buckets VALUE      Number of LSH buckets for documents (default: 64)
       |   -s VALUE, --stopwords VALUE    Number of stopwords to remove (default: 250)
       |   -l VALUE, --length VALUE       Number of sentences to extract from each document (default: 5) 
       |   -b VALUE, --boilerplate VALUE  Similarity cutoff for cross-document boilerplate filtering (default: 0.8)
