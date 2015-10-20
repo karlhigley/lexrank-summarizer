@@ -4,6 +4,8 @@ This is a Spark-based extractive summarizer, based on the [LexRank algorithm](ht
 
 Boilerplate sentences are detected across all documents in the corpus using frequent [sign-random projection locality-sensitive hashing](http://www.cs.princeton.edu/~moses/papers/similar.ps) (SRP-LSH) signatures, and detected within documents in the corpus using estimations of cosine similarity based on the SRP-LSH signatures.
 
+For an explanation of the [pooling trick](https://github.com/karlhigley/lexrank-summarizer/blob/master/src/main/scala/io/github/karlhigley/lexrank/SignRandomProjectionLSH.scala#L12) used in this SRP-LSH implementation, see [Online Generation of Locality Sensitive Hash Signatures](http://www.cs.jhu.edu/~vandurme/papers/VanDurmeLallACL10.pdf).
+
 ## Usage
 
 Build a JAR file from the source with `sbt assembly`.  Submit a job to Spark with:
